@@ -41,7 +41,8 @@ architecture Structural of calculator is
     component instr_register is
       port(
         btn : in  std_logic;                     
-        sw_bus   : in  std_logic_vector(7 downto 0);  
+        sw_bus   : in  std_logic_vector(7 downto 0); 
+        skip_next: in std_logic; 
         instr    : out std_logic_vector(7 downto 0)   
       );
     end component;
@@ -158,8 +159,6 @@ architecture Structural of calculator is
     end component;
 
     signal ssd_mux_out : std_logic_vector(3 downto 0);
-    
-    signal blank_req : std_logic := '1';
 
 begin
     
@@ -170,23 +169,13 @@ begin
             raw_reset => reset,
             clk_pulse => debounced_clk,
             reset_pulse => debounced_reset
-            );
-           
-    blank_latch : process(debounced_clk, debounced_reset)
-    begin
-      if debounced_reset = '1' then
-        blank_req <= '1';               -- go blank at reset
-      elsif rising_edge(debounced_clk) then
-        if dis_en = '1' then
-          blank_req <= '0';             -- clear blank when you actually DISPLAY
-        end if;
-      end if;
-    end process blank_latch;
+            );  
             
     instruction: instr_register
         port map (
             btn => debounced_clk,
             sw_bus => sw,
+            skip_next => skip_next,
             instr => instr
             );
     
@@ -237,7 +226,7 @@ begin
 
     display : display_decoder
         port map ( 
-            reset => blank_req,
+            reset => debounced_reset,
             dis_val => r1,
             dis_en => dis_en,
             digit_lo => digit_lo,
